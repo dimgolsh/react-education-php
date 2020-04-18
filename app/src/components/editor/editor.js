@@ -26,10 +26,22 @@ export default class Editor extends React.Component {
       .post("./api/createNewPage.php", { name: this.state.newPageName })
       .then(this.loadPageList());
   }
+
+  deletePage(page) {
+    axios
+    .post('./api/deletePage.php',{"name":page})
+    .then(this.loadPageList())
+    .catch(()=>{console.log('eroror')})
+  }
   render() {
     const { pageList } = this.state;
     const pages = pageList.map((page, i) => {
-      return <h1 key={i}>{page}</h1>;
+      return (
+        <h1 key={i}>
+          {page}
+          <a href="#" onClick={() => this.deletePage(page)}>*</a>
+        </h1>
+      );
     });
     return (
       <>
