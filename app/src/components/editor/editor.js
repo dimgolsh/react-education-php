@@ -1,9 +1,11 @@
 import React from "react";
 import axios from "axios";
+import '../../helpers/iframeLoader.js';
 
 export default class Editor extends React.Component {
   constructor() {
     super();
+    this.currentPage = 'index.html';
 
     this.state = {
       pageList: [],
@@ -14,7 +16,22 @@ export default class Editor extends React.Component {
   }
 
   componentDidMount() {
-    this.loadPageList();
+   this.init(this.currentPage);
+
+  }
+
+  init(page){
+      this.iframe = document.querySelector('iframe');
+      this.open(page);
+      this.loadPageList();
+
+  }
+  open(page){
+      this.currentPage = `../${page}`;
+      this.iframe.load(this.currentPage,()=>{
+          console.log(this.currentPage)
+      });
+
   }
 
   loadPageList() {
@@ -45,6 +62,7 @@ export default class Editor extends React.Component {
     });
     return (
       <>
+      <iframe src={this.currentPage} frameBorder="0"></iframe>
         <input
           onChange={(e) => {
             this.setState({ newPageName: e.target.value });
