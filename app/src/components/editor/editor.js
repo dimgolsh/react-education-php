@@ -25,32 +25,78 @@ export default class Editor extends React.Component {
     this.loadPageList();
   }
   open(page) {
-    this.currentPage = `../${page}`;
-    this.iframe.load(this.currentPage, () => {
-      console.log('sss',this.currentPage);
-      const body = this.iframe.contentDocument.body;
-      console.log(body);
-      let textNodes = [];
+    this.currentPage = `../${page}?rnd=${Math.random()}`;
+    axios
+    .get(`../${page}`)
+    .then(res=>this.parseStrDom(res.data))
+    .then(this.wrapTextNodes)
+    .then(dom => {
+        this.virtualDom = dom;
+        return dom;
+    })
+    .then(this.serializeDOMToString)
+    .then(html=>axios.post('./api/saveTempPage.php',{html}))
+    .then(()=>this.iframe.load('../temp.html'))
+    .then(()=> this.enableEditing())
 
-      function recursy(element) {
-        element.childNodes.forEach(node => {
-          if (node.nodeName === "#text" && node.nodeValue.replace(/\s+/g, '').length > 0) {
-            textNodes.push(node);
-            console.log(node);
-          } else {
-            recursy(node);
-          }
-        });
-      }
+    // this.iframe.load(this.currentPage, () => {
+     
+    // });
+  }
 
-      recursy(body);
-      textNodes.forEach(node => {
-          const wrapper = this.iframe.contentDocument.createElement('text-editor');
-          node.parentNode.replaceChild(wrapper, node);
-          wrapper.appendChild(node);
-          wrapper.contentEditable = 'true';
-      })
+  enableEditing(){
+      this.iframe.contentDocument.body.querySelectorAll("text-editor").forEach(element => {
+        element.contentEditable = 'true';
+        element.addEventListener('input',()=>{
+            this.onTextEdit(element);
+        })
+      });
+
+      console.log(this.virtualDom);
+
+  }
+
+  onTextEdit(element){
+    const id = element.getAttribute('nodeid');
+    this.virtualDom.body.querySelector(`[nodeid="${id}"]`).innerHTML = element.innerHTML;
+  }
+  parseStrDom(str){
+      const parser = new DOMParser();
+      return parser.parseFromString(str,'text/html');
+  }
+
+  wrapTextNodes(dom){
+ 
+    const body = dom.body;
+    console.log(body);
+    let textNodes = [];
+
+    function recursy(element) {
+      element.childNodes.forEach(node => {
+        if (node.nodeName === "#text" && node.nodeValue.replace(/\s+/g, '').length > 0) {
+          textNodes.push(node);
+          console.log(node);
+        } else {
+          recursy(node);
+        }
+      });
+    }
+
+    recursy(body);
+    textNodes.forEach((node,i) => {
+        const wrapper = dom.createElement('text-editor');
+        node.parentNode.replaceChild(wrapper, node);
+        wrapper.appendChild(node);
+        wrapper.setAttribute('nodeid', i);
+        wrapper.contentEditable = 'true';
     });
+
+    return dom;
+  }
+
+  serializeDOMToString(dom){
+      const serializer = new XMLSerializer();
+      return serializer.serializeToString(dom)
   }
 
   loadPageList() {
