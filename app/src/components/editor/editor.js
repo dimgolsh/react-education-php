@@ -25,9 +25,9 @@ export default class Editor extends React.Component {
     this.loadPageList();
   }
   open(page) {
-    this.currentPage = `../${page}?rnd=${Math.random()}`;
+    this.currentPage = page;
     axios
-    .get(`../${page}`)
+    .get(`../${page}?rnd=${Math.random()}`)
     .then(res=>this.parseStrDom(res.data))
     .then(this.wrapTextNodes)
     .then(dom => {
@@ -44,6 +44,19 @@ export default class Editor extends React.Component {
     // });
   }
 
+  save(){
+      const newDom = this.virtualDom.cloneNode(this.virtualDom);
+      this.unwrapTextNodes(newDom);
+      const html = this.serializeDOMToString(newDom);
+      axios
+      .post('./api/savePage.php',{pageName: this.currentPage, html})
+  }
+
+  unwrapTextNodes(dom){
+      dom.body.querySelectorAll('text-editor').forEach(element=>{
+          element.parentNode.replaceChild(element.firstChild,element)
+      })
+  }
   enableEditing(){
       this.iframe.contentDocument.body.querySelectorAll("text-editor").forEach(element => {
         element.contentEditable = 'true';
@@ -131,6 +144,7 @@ export default class Editor extends React.Component {
     });
     return (
       <>
+        <button onClick={()=>{this.save()}}>Click</button>
         <iframe src={this.currentPage} frameBorder="0"></iframe>
        {/*  <input
           onChange={(e) => {
