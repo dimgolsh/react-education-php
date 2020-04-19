@@ -7,6 +7,7 @@ import UIkit from "uikit";
 import Spinner from "../spinner/spinner.js";
 import ConfirmModal from '../confirm-modal/confirm-modal.js';
 import ChooseModal from '../choose-modal/choose-modal.js';
+import Panel from '../panel/panel.js';
 
 export default class Editor extends React.Component {
   constructor() {
@@ -16,6 +17,7 @@ export default class Editor extends React.Component {
     this.state = {
       pageList: [],
       newPageName: "",
+      backups: [],
       loading: true,
     };
 
@@ -24,6 +26,7 @@ export default class Editor extends React.Component {
     this.isLoading = this.isLoading.bind(this);
     this.save = this.save.bind(this);
     this.init = this.init.bind(this);
+    this.restoreBackup = this.restoreBackup.bind(this);
   }
 
   componentDidMount() {
@@ -39,6 +42,7 @@ export default class Editor extends React.Component {
     this.iframe = document.querySelector("iframe");
     this.open(page, this.isLoaded);
     this.loadPageList();
+    this.loadBackupList();
   }
   open(page, cb) {
     this.currentPage = page;
@@ -58,21 +62,24 @@ export default class Editor extends React.Component {
       .then(() => this.injectStyles())
       .then(cb);
 
+      this.loadBackupList();
     // this.iframe.load(this.currentPage, () => {
 
     // });
   }
 
-  save(onSucceess, onErrorr) {
+ async save(onSucceess, onErrorr) {
     this.isLoading();
     const newDom = this.virtualDom.cloneNode(this.virtualDom);
     DOMHelper.unwrapTextNodes(newDom);
     const html = DOMHelper.serializeDOMToString(newDom);
-    axios
+    await axios
       .post("./api/savePage.php", { pageName: this.currentPage, html })
       .then(onSucceess)
       .catch(onErrorr)
       .finally(this.isLoaded);
+
+      this.loadBackupList();
   }
 
   enableEditing() {
@@ -104,6 +111,12 @@ export default class Editor extends React.Component {
     axios.get("./api/pageList.php").then((res) => this.setState({ pageList: res.data }));
   }
 
+  loadBackupList(){
+    axios
+    .get('./backups/backups.json')
+    .then(res=> {console.log(res.data); return res})
+    .then(res => this.setState({backups: res.data.filter(backup=>{ return backup.page === this.currentPage; })}))
+  }
   createNewPage() {
     axios
       .post("./api/createNewPage.php", { name: this.state.newPageName })
@@ -124,31 +137,43 @@ export default class Editor extends React.Component {
     });
   }
 
+  restoreBackup(e,backup){
+    if(e){
+      e.preventDefault();
+
+    }
+    UIkit.modal.confirm('You arse',{labels: {ok: 'Yes', cancel: 'Otmena'}})
+    .then(()=>{
+      this.isLoading();
+      return axios
+      .post('./api/restoreBackup.php',{'page':this.currentPage, 'file': backup})
+    })
+    .then(()=>{
+      this.open(this.currentPage, this.isLoaded);
+    })
+  }
   isLoading() {
     this.setState({
       loading: true,
     });
   }
   render() {
-    const { loading , pageList} = this.state;
+    const { loading , pageList, backups} = this.state;
     const modal = true;
 
     let spinner;
+    console.log(backups);
     loading ? (spinner = <Spinner active />) : (spinner = <Spinner />);
 
     return (
       <>
         {spinner}
-        <iframe src={this.currentPage} frameBorder="0"></iframe>
+        <iframe src='' frameBorder="0"></iframe>
 
-        <div className="panel">
-        <button className="uk-button uk-button-primary uk-margin-small-right" uk-toggle="target: #modal-open"> Открыть </button>
-          <button className="uk-button uk-button-primary " uk-toggle="target: #modal-save"> Опубликовать </button>
-      
-        </div>
-
+        <Panel/>
         <ConfirmModal modal={modal} target={'modal-save'} method={this.save}/>
         <ChooseModal modal={modal} target={'modal-open'} data={pageList} redirect={this.init} />
+        <ChooseModal modal={modal} target={'modal-backup'} data={backups} redirect={this.restoreBackup} />
        
       </>
     );
