@@ -4,7 +4,9 @@ import "../../helpers/iframeLoader.js";
 import DOMHelper from "../../helpers/dom-helpers.js";
 import EditorText from "../editor-text/editor-text";
 import UIkit from "uikit";
-import Spinner from '../spinner/spinner.js';
+import Spinner from "../spinner/spinner.js";
+import ConfirmModal from '../confirm-modal/confirm-modal.js';
+import ChooseModal from '../choose-modal/choose-modal.js';
 
 export default class Editor extends React.Component {
   constructor() {
@@ -14,19 +16,26 @@ export default class Editor extends React.Component {
     this.state = {
       pageList: [],
       newPageName: "",
-      loading: true
+      loading: true,
     };
 
     this.createNewPage = this.createNewPage.bind(this);
     this.isLoaded = this.isLoaded.bind(this);
     this.isLoading = this.isLoading.bind(this);
+    this.save = this.save.bind(this);
+    this.init = this.init.bind(this);
   }
 
   componentDidMount() {
-    this.init(this.currentPage);
+    this.init(null, this.currentPage);
   }
 
-  init(page) {
+  init(e, page) {
+    if(e){
+      e.preventDefault();
+
+    }
+    this.isLoading();
     this.iframe = document.querySelector("iframe");
     this.open(page, this.isLoaded);
     this.loadPageList();
@@ -43,7 +52,8 @@ export default class Editor extends React.Component {
       })
       .then(DOMHelper.serializeDOMToString)
       .then((html) => axios.post("./api/saveTempPage.php", { html }))
-      .then(() => this.iframe.load("../temp.html"))
+      .then(() => this.iframe.load("../ehhmdrtyh43.html"))
+     // .then(()=>axios.post('./api/deletePage.php',{"name":"ehhmdrtyh43.html"}))
       .then(() => this.enableEditing())
       .then(() => this.injectStyles())
       .then(cb);
@@ -54,15 +64,15 @@ export default class Editor extends React.Component {
   }
 
   save(onSucceess, onErrorr) {
-      this.isLoading();
+    this.isLoading();
     const newDom = this.virtualDom.cloneNode(this.virtualDom);
     DOMHelper.unwrapTextNodes(newDom);
     const html = DOMHelper.serializeDOMToString(newDom);
-    axios.post("./api/savePage.php", { pageName: this.currentPage, html })
-    .then(onSucceess)
-    .catch(onErrorr)
-    .finally(this.isLoaded)
-    ;
+    axios
+      .post("./api/savePage.php", { pageName: this.currentPage, html })
+      .then(onSucceess)
+      .catch(onErrorr)
+      .finally(this.isLoaded);
   }
 
   enableEditing() {
@@ -91,7 +101,7 @@ export default class Editor extends React.Component {
   }
 
   loadPageList() {
-    axios.get("./api").then((res) => this.setState({ pageList: res.data }));
+    axios.get("./api/pageList.php").then((res) => this.setState({ pageList: res.data }));
   }
 
   createNewPage() {
@@ -108,61 +118,38 @@ export default class Editor extends React.Component {
         console.log("eroror");
       });
   }
-  isLoaded(){
+  isLoaded() {
     this.setState({
-        loading:false
-    })
-}
+      loading: false,
+    });
+  }
 
-  isLoading(){
-      this.setState({
-          loading:true
-      })
+  isLoading() {
+    this.setState({
+      loading: true,
+    });
   }
   render() {
-
-    const {loading} = this.state;
+    const { loading , pageList} = this.state;
     const modal = true;
 
     let spinner;
-    loading ? spinner = <Spinner active/> : spinner = <Spinner/>
+    loading ? (spinner = <Spinner active />) : (spinner = <Spinner />);
 
     return (
-     
       <>
-      {spinner}
-      <iframe src={this.currentPage} frameBorder="0"></iframe>
-      
+        {spinner}
+        <iframe src={this.currentPage} frameBorder="0"></iframe>
+
         <div className="panel">
-          <button
-            className="uk-button uk-button-primary"
-            uk-toggle="target: #my-id" 
-          >
-            Click
-          </button>
-        </div>
-        <div id="my-id" uk-modal={modal.toString()}>
-          <div className="uk-modal-dialog uk-modal-body">
-            <h2 className="uk-modal-title">Save</h2>
-            <p>Вы уверены?</p>
-            <button className="uk-button uk-button-primary  uk-modal-close" type="button"
-              onClick={() => {
-                this.save(()=>{
-                    UIkit.notification({message: 'Notification message',status: 'success'})
-                });
-              },
-              () => {
-                this.save(()=>{
-                    UIkit.notification({message: 'Error',status: 'danger'})
-                });
-              }
-            }
-            >Да</button>
-            <button className="uk-button uk-button-secondary uk-modal-close" type="button">Нет</button>
-          </div>
+        <button className="uk-button uk-button-primary uk-margin-small-right" uk-toggle="target: #modal-open"> Открыть </button>
+          <button className="uk-button uk-button-primary " uk-toggle="target: #modal-save"> Опубликовать </button>
+      
         </div>
 
-      
+        <ConfirmModal modal={modal} target={'modal-save'} method={this.save}/>
+        <ChooseModal modal={modal} target={'modal-open'} data={pageList} redirect={this.init} />
+       
       </>
     );
   }
