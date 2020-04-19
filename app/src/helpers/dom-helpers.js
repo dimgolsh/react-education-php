@@ -19,14 +19,14 @@ export default class DOMHelper {
     static wrapTextNodes(dom){
  
         const body = dom.body;
-        console.log(body);
+     //   console.log(body);
         let textNodes = [];
     
         function recursy(element) {
           element.childNodes.forEach(node => {
             if (node.nodeName === "#text" && node.nodeValue.replace(/\s+/g, '').length > 0) {
               textNodes.push(node);
-              console.log(node);
+             /// console.log(node);
             } else {
               recursy(node);
             }

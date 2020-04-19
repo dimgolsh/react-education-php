@@ -2,6 +2,7 @@ import React from "react";
 import axios from "axios";
 import "../../helpers/iframeLoader.js";
 import DOMHelper from "../../helpers/dom-helpers.js";
+import EditorText from '../editor-text/editor-text';
 
 export default class Editor extends React.Component {
   constructor() {
@@ -38,7 +39,8 @@ export default class Editor extends React.Component {
       .then(DOMHelper.serializeDOMToString)
       .then((html) => axios.post("./api/saveTempPage.php", { html }))
       .then(() => this.iframe.load("../temp.html"))
-      .then(() => this.enableEditing());
+      .then(() => this.enableEditing())
+      .then(()=> this.injectStyles());
 
     // this.iframe.load(this.currentPage, () => {
 
@@ -56,20 +58,26 @@ export default class Editor extends React.Component {
     this.iframe.contentDocument.body
       .querySelectorAll("text-editor")
       .forEach((element) => {
-        element.contentEditable = "true";
-        element.addEventListener("input", () => {
-          this.onTextEdit(element);
-        });
+        const id = element.getAttribute("nodeid");
+        const virtualElement = this.virtualDom.body.querySelector(`[nodeid="${id}"]`);
+
+        new EditorText(element, virtualElement)
       });
 
-    console.log(this.virtualDom);
+  //  console.log(this.virtualDom);
   }
 
-  onTextEdit(element) {
-    const id = element.getAttribute("nodeid");
-    this.virtualDom.body.querySelector(`[nodeid="${id}"]`).innerHTML =
-      element.innerHTML;
+  injectStyles(){
+      const style = this.iframe.contentDocument.createElement("style");
+      style.innerHTML = `
+      text-editor:hover {
+          outline: 3px solid orange;
+          outline-offset: 8px;
+      }`;
+      this.iframe.contentDocument.head.appendChild(style);
   }
+
+ 
 
   loadPageList() {
     axios.get("./api").then((res) => this.setState({ pageList: res.data }));
