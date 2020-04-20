@@ -44,4 +44,20 @@ export default class DOMHelper {
     
         return dom;
       }
+
+      static wrapImages(dom){
+        dom.body.querySelectorAll('img').forEach((img,i)=>{
+          img.setAttribute('editableimgid',i);
+
+        });
+        return dom;
+      }
+
+      static unwrapImages(dom){
+        dom.body.querySelectorAll('[editableimgid]').forEach((img)=>{
+          img.removeAttribute('editableimgid');
+
+        });
+      
+      }
 }
