@@ -10,6 +10,7 @@ import ChooseModal from '../choose-modal/choose-modal.js';
 import Panel from '../panel/panel.js';
 import EditorMeta from '../editor-meta/editor-meta.js';
 import EditorImages from '../editor-images/editor-images.js';
+import Login from '../login/login.js';
 
 
 export default class Editor extends React.Component {
@@ -22,6 +23,9 @@ export default class Editor extends React.Component {
       newPageName: "",
       backups: [],
       loading: true,
+      auth: false,
+      loginError: false,
+      loginLen: false
     };
 
     this.createNewPage = this.createNewPage.bind(this);
@@ -29,23 +33,74 @@ export default class Editor extends React.Component {
     this.isLoading = this.isLoading.bind(this);
     this.save = this.save.bind(this);
     this.init = this.init.bind(this);
+    this.login = this.login.bind(this);
     this.restoreBackup = this.restoreBackup.bind(this);
+    this.logout = this.logout.bind(this);
   }
 
   componentDidMount() {
-    this.init(null, this.currentPage);
+    this.checkAuth();
+
+   
+  }
+  componentDidUpdate(prevProps, prevState){
+    if(this.state.auth !== prevState.auth){
+      this.init(null, this.currentPage);
+    }
   }
 
+  checkAuth(){
+    axios
+    .get('./api/checkAuth.php')
+    .then(res => {
+      console.log(res.data);
+      this.setState({
+        auth: res.data.auth
+      })
+    })
+  }
+
+  login(pass){
+    if(pass.length > 5){
+      console.log(pass);
+
+      axios 
+      .post('./api/login.php',{'password': pass})
+      .then(res => {
+        this.setState({
+          auth:res.data.auth,
+          loginError: !res.data.auth,
+          loginLen: false
+        })
+      })
+    } else {
+      this.setState({
+        loginError: false,
+        loginLen: true
+      })
+    }
+  }
+
+  logout(){
+    axios
+    .get('./api/logout.php')
+    .then(()=>{
+        window.location.replace('/')
+    })
+  }
   init(e, page) {
     if(e){
       e.preventDefault();
 
     }
-    this.isLoading();
-    this.iframe = document.querySelector("iframe");
-    this.open(page, this.isLoaded);
-    this.loadPageList();
-    this.loadBackupList();
+    if(this.state.auth){
+      this.isLoading();
+      this.iframe = document.querySelector("iframe");
+      this.open(page, this.isLoaded);
+      this.loadPageList();
+      this.loadBackupList();
+    }
+ 
   }
   open(page, cb) {
     this.currentPage = page;
@@ -187,21 +242,45 @@ export default class Editor extends React.Component {
     });
   }
   render() {
-    const { loading , pageList, backups} = this.state;
+    const { loading , pageList, backups, auth,loginError,loginLen} = this.state;
     const modal = true;
 
     let spinner;
     console.log(backups);
     loading ? (spinner = <Spinner active />) : (spinner = <Spinner />);
 
+    if(!auth){
+      return <Login login = {this.login} lengthErr = {loginLen} logErr={loginError}/>
+    }
     return (
       <>
         {spinner}
         <iframe src='' frameBorder="0"></iframe>
         <input id='img-upload' type='file' accept='image/*' style={{display: 'none'}}></input>
-
+       
         <Panel/>
-        <ConfirmModal modal={modal} target={'modal-save'} method={this.save}/>
+        <ConfirmModal
+         modal={modal} 
+         target={'modal-save'} 
+         method={this.save}
+         text={{
+           title: 'Cохранение',
+           description: 'dddrgrrr',
+           btn: 'Save'
+         }}
+         />
+
+          <ConfirmModal
+         modal={modal} 
+         target={'modal-logout'} 
+         method={this.logout}
+         text={{
+           title: 'Выход',
+           description: 'Вы дев',
+           btn: 'Выйтм'
+         }}
+         />
+
         <ChooseModal modal={modal} target={'modal-open'} data={pageList} redirect={this.init} />
         <ChooseModal modal={modal} target={'modal-backup'} data={backups} redirect={this.restoreBackup} />
         {this.virtualDom ?  <EditorMeta modal={modal} target={'modal-meta'} virtualDom={this.virtualDom}/> : false}

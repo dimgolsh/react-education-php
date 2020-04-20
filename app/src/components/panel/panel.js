@@ -7,6 +7,7 @@ return (
         <button className="uk-button uk-button-primary " uk-toggle="target: #modal-save"> Опубликовать </button>
         <button className="uk-button uk-button-default " uk-toggle="target: #modal-backup"> Восстановить </button>
         <button className="uk-button uk-button-default " uk-toggle="target: #modal-meta"> META </button>
+        <button className="uk-button uk-button-danger " uk-toggle="target: #modal-logout"> Logout </button>
         </div>
 )
 }

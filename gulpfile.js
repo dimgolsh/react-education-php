@@ -6,7 +6,8 @@ const dist = "c:/wamp64/www/react-php/admin/";
 // Здесь должен быть путь к папке admin в вашем проекте на локальном сервере
 
 gulp.task("copy-html", () => {
-    return gulp.src("./app/src/index.html")
+   
+  return gulp.src("./app/src/index.html")
                 .pipe(gulp.dest(dist));
 });
 
@@ -49,6 +50,9 @@ gulp.task("build-sass", () => {
 });
 
 gulp.task("copy-api", () => {
+  gulp.src("./app/api/**/.*")
+                .pipe(gulp.dest(dist + "/api"));
+
     return gulp.src("./app/api/**/*.*")
                 .pipe(gulp.dest(dist + "/api"));
 });
