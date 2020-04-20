@@ -80,8 +80,10 @@ export default class Editor extends React.Component {
     const html = DOMHelper.serializeDOMToString(newDom);
     await axios
       .post("./api/savePage.php", { pageName: this.currentPage, html })
+      .then(()=> this.showNotifications('Успешно сохранен','success'))
       .then(onSucceess)
       .catch(onErrorr)
+      .catch(()=> this.showNotifications('ddd','danger'))
       .finally(this.isLoaded);
 
       this.loadBackupList();
@@ -107,7 +109,7 @@ export default class Editor extends React.Component {
           `[editableimgid="${id}"]`
         );
 
-        new EditorImages(element, virtualElement);
+        new EditorImages(element, virtualElement, this.isLoading, this.isLoaded, this.showNotifications);
       });
 
     //  console.log(this.virtualDom);
@@ -128,6 +130,11 @@ export default class Editor extends React.Component {
     this.iframe.contentDocument.head.appendChild(style);
   }
 
+  showNotifications(message, status){
+    UIkit.notification({message, status});
+
+
+  }
   loadPageList() {
     axios.get("./api/pageList.php").then((res) => this.setState({ pageList: res.data }));
   }
@@ -157,6 +164,7 @@ export default class Editor extends React.Component {
       loading: false,
     });
   }
+
 
   restoreBackup(e,backup){
     if(e){
